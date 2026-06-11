@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "installCommand": "pnpm install --filter \"@converge/web...\"",
+  "buildCommand": "pnpm --filter \"@converge/crdt\" build && pnpm --filter \"@converge/shared\" build && pnpm --filter \"@converge/web\" build",
+  "outputDirectory": "dist"
+}
