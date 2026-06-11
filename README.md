@@ -37,7 +37,8 @@ cd apps/web && pnpm dev               # http://localhost:5173
 
 ### Two-minute demo: offline merge
 
-1. Open `http://localhost:5173/?doc=demo` in **two tabs**, side by side.
+1. Open `http://localhost:5173` in **two tabs**, side by side (the
+   default document is `welcome`; pick any other with `?doc=<name>`).
 2. Type in either tab — keystrokes appear in the other in ~10ms, with a
    colored caret and name label for each participant.
 3. Click **Go offline** in tab A. The status pill flips to *offline*.

@@ -18,9 +18,9 @@ interface AnchoredSelection {
  * the value while the local caret is restored from CRDT anchors, so it
  * holds position even when concurrent edits land before it.
  *
- * Remote carets are rendered in a metrics-identical overlay: an
- * invisible "ghost" of the text up to each peer's caret position flows
- * a colored caret element to exactly the right spot, including wraps.
+ * Remote carets and selections render in a metrics-identical overlay:
+ * an invisible "ghost" of the text up to each peer's position flows the
+ * markers to exactly the right spot, including line wraps.
  */
 export function Editor({ client }: EditorProps) {
   useSyncExternalStore(client.subscribe, client.getVersion);
@@ -88,15 +88,40 @@ export function Editor({ client }: EditorProps) {
         {peers.map((peer) => {
           const caret = client.caretForAnchor(peer.cursor);
           if (caret < 0) return null; // anchor not known here yet
+
+          // Peer selection range, rendered as a translucent highlight.
+          let selStart = -1;
+          let selEnd = -1;
+          if (peer.selection !== null) {
+            const a = client.caretForAnchor(peer.selection.anchor);
+            const h = client.caretForAnchor(peer.selection.head);
+            if (a >= 0 && h >= 0 && a !== h) {
+              selStart = Math.min(a, h);
+              selEnd = Math.max(a, h);
+            }
+          }
+
+          // Highlight and caret flow in separate stacked layers so a
+          // "backwards" selection (caret at the start) renders correctly.
           return (
-            <div key={peer.siteId} className="peer-layer">
-              <span className="peer-ghost">{text.slice(0, caret)}</span>
-              <span className="peer-marker">
-                <span className="peer-caret" style={{ backgroundColor: peer.color }} />
-                <span className="peer-label" style={{ backgroundColor: peer.color }}>
-                  {peer.name}
+            <div key={peer.siteId}>
+              {selStart >= 0 && (
+                <div className="peer-layer">
+                  <span className="peer-ghost">{text.slice(0, selStart)}</span>
+                  <span className="peer-selection" style={{ backgroundColor: `${peer.color}38` }}>
+                    {text.slice(selStart, selEnd)}
+                  </span>
+                </div>
+              )}
+              <div className="peer-layer">
+                <span className="peer-ghost">{text.slice(0, caret)}</span>
+                <span className="peer-marker">
+                  <span className="peer-caret" style={{ backgroundColor: peer.color }} />
+                  <span className="peer-label" style={{ backgroundColor: peer.color }}>
+                    {peer.name}
+                  </span>
                 </span>
-              </span>
+              </div>
             </div>
           );
         })}
