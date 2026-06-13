@@ -7,10 +7,16 @@ export class PgOpStore implements OpStore {
   private readonly pool: pg.Pool;
 
   constructor(databaseUrl: string) {
+    // Managed providers (Neon, Supabase, RDS) require TLS and advertise
+    // it with `sslmode=require` in the URL. node-postgres doesn't reliably
+    // honor that from the connection string, so enable it explicitly.
+    // Local and Fly-internal (`sslmode=disable`) connections stay plaintext.
+    const needsSsl = databaseUrl.includes("sslmode=require");
     this.pool = new pg.Pool({
       connectionString: databaseUrl,
       max: 10,
       idleTimeoutMillis: 30_000,
+      ...(needsSsl ? { ssl: { rejectUnauthorized: false } } : {}),
     });
   }
 
