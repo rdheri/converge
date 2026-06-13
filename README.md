@@ -130,12 +130,21 @@ concurrent same-node deletes) are pinned with exact expected strings.
 ## Persistence
 
 Postgres, schema in
-[apps/server/migrations/001_init.sql](apps/server/migrations/001_init.sql):
-`documents`, an append-only `operations` log keyed `(doc_id, seq)` (with
-lamport/site denormalized for ad-hoc queries), and one `snapshots` row per
-doc (`state` jsonb, `up_to_seq`). The log is never pruned. Connection
-pooling via `pg.Pool`; `DATABASE_URL` from the environment; without it the
-server falls back to an in-memory store for quick demos.
+[apps/server/migrations/](apps/server/migrations/): `documents`, an
+append-only `operations` log keyed `(doc_id, seq)` (with lamport/site
+denormalized for ad-hoc queries), and one `snapshots` row per doc. The log
+is never pruned. Connection pooling via `pg.Pool`; `DATABASE_URL` from the
+environment; without it the server falls back to an in-memory store for
+quick demos.
+
+The op `payload` and snapshot `state` are stored as **`text`, not
+`jsonb`** — a deliberate choice: the CRDT is granular to UTF-16 code
+units, so a character outside the BMP (an emoji) is split into two nodes
+each holding one surrogate. A lone surrogate is valid in a JS string and
+in escaped JSON text but violates `jsonb`'s well-formed-Unicode rule, so
+storing it as `jsonb` would fail the insert. The log is always read back
+wholesale and re-validated in the app, so it gains nothing from `jsonb`'s
+structure.
 
 ## Load test
 

@@ -38,12 +38,12 @@ export class PgOpStore implements OpStore {
   }
 
   async loadOps(docId: string, afterSeq: number): Promise<SeqOp[]> {
-    const res = await this.pool.query<{ seq: string; payload: unknown }>(
+    const res = await this.pool.query<{ seq: string; payload: string }>(
       "SELECT seq, payload FROM operations WHERE doc_id = $1 AND seq > $2 ORDER BY seq ASC",
       [docId, afterSeq],
     );
     return res.rows.map((row) => {
-      const op: unknown = row.payload;
+      const op: unknown = JSON.parse(row.payload);
       if (!isOp(op)) {
         throw new Error(`corrupt op in log for doc ${docId} at seq ${row.seq}`);
       }
@@ -52,16 +52,17 @@ export class PgOpStore implements OpStore {
   }
 
   async loadSnapshot(docId: string): Promise<SnapshotRecord | null> {
-    const res = await this.pool.query<{ state: unknown; up_to_seq: string }>(
+    const res = await this.pool.query<{ state: string; up_to_seq: string }>(
       "SELECT state, up_to_seq FROM snapshots WHERE doc_id = $1",
       [docId],
     );
     const row = res.rows[0];
     if (row === undefined) return null;
-    if (!isRGASnapshot(row.state)) {
+    const state: unknown = JSON.parse(row.state);
+    if (!isRGASnapshot(state)) {
       throw new Error(`corrupt snapshot for doc ${docId}`);
     }
-    return { state: row.state, upToSeq: Number(row.up_to_seq) };
+    return { state, upToSeq: Number(row.up_to_seq) };
   }
 
   async saveSnapshot(docId: string, record: SnapshotRecord): Promise<void> {
