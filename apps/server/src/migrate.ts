@@ -13,7 +13,12 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const pool = new pg.Pool({ connectionString: databaseUrl, max: 1 });
+  const needsSsl = databaseUrl.includes("sslmode=require");
+  const pool = new pg.Pool({
+    connectionString: databaseUrl,
+    max: 1,
+    ...(needsSsl ? { ssl: { rejectUnauthorized: false } } : {}),
+  });
   await pool.query(
     `CREATE TABLE IF NOT EXISTS schema_migrations (
        name text PRIMARY KEY,
